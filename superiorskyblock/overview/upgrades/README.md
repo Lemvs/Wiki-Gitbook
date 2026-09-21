@@ -136,17 +136,21 @@ Finally, I have a working generator upgrade that will have it's values synced wi
 
 Every level of an upgrade can have the following fields:
 
-| Field             | Type   | Description                                                                                                                                                             |
-| ----------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `price-type`      | String | The type of the price handler. Optional; when omitted, defaults to `money`. The value is case-insensitive. If an invalid price-type is used, the level will be skipped. |
-| `price`           | Double | The cost to upgrade to the next level.                                                                                                                                  |
-| `commands`        | List   | Commands that will be executed by the console when the level is purchased. You can use `%player%` for the player's name.                                               |
-| `permission`      | String | Optional permission that is required to rankup to the configured level.                                                                                                              |
-| `required-checks` | List   | Optional conditions that must be met to purchase the level. More information below.                                                                                     |
+| Field             | Type   | Description                                                                                                              |
+| ----------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `commands`        | List   | Commands that will be executed by the console when the level is purchased. You can use `%player%` for the player's name. |
+| `permission`      | String | Optional permission that is required to rankup to the configured level.                                                  |
+| `required-checks` | List   | Optional conditions that is required to rankup to the configured level. More information below.                          |
+
+Each level can also have a price or multiple prices, which you will learn more about below.
+
+{% hint style="info" %}
+Unlike prices, where the rankup cost is taken from the current level, permissions and required-checks are taken from the next level, so start configuring them from level 2.
+{% endhint %}
 
 ### Required Checks
 
-Using the `required-checks` field, you can add custom conditions that players must meet before they can purchase a level. Each entry in the list is in the format `<condition>;<error-message>`: the condition is evaluated by the [JavaScript engine](../javascript-engine.md) (placeholders are supported), and if it's not met, the error message will be sent to the player.
+Using the `required-checks` field, you can add custom conditions that players must meet before they can rankup to the configured level. Each entry in the list is in the format `<condition>;<error-message>`: the condition is evaluated by the [JavaScript engine](../javascript-engine.md) (placeholders are supported), and if it's not met, the error message will be sent to the player.
 
 For example, requiring the island to be at least level 10 in order to purchase the level:
 
@@ -177,13 +181,14 @@ You can use the following sections to alter island values:
 | `block-limits`    | Section | The block limits for this upgrade. All the blocks are in the format `TYPE: LIMIT`. Block types also support data values, in the format `TYPE:DATA`.                                                                                                             |
 | `entity-limits`   | Section | The entity limits for this upgrade. All the entities are in the format `TYPE: LIMIT`.                                                                                                                                                                           |
 | `generator-rates` | Section | The generator rates for this upgrade. The rates are configured per world environment (`normal`, `nether` or `the_end`), with all the rates in the format `TYPE: CHANCE`. Rates that are placed directly under the section (legacy format) will apply to the default world of the plugin. |
-| `island-effects`  | Section | The island effects for this upgrade. All the effects are in the format `EFFECT: LEVEL`, where the level is the in-game effect level (`SPEED: 1` gives Speed I). Invalid effect names are ignored.                                                               |
+| `island-effects`  | Section | The island effects for this upgrade. All the effects are in the format `EFFECT: LEVEL`, where the level is the in-game effect level (`SPEED: 1` gives Speed II). Invalid effect names are ignored.                                                               |
 | `role-limits`     | Section | The role limits for this upgrade. All the roles are in the format `ROLE-ID: LIMIT`, where the role id is the numeric id (weight) of the role from the main config, not its name.                                                                                |
 
 ## Price Types
 
-The plugin has two pre-defined price types - money based prices and placeholders based prices.\
-Simply add the `price-type` section to your upgrade with the price-type you want. Currently there are two different ones: `money` and `placeholders:`
+The plugin has three pre-defined price types - money based prices, placeholders based prices and items based prices.\
+When `price-type` is omitted, defaults to `money`. The value is case-insensitive. If an invalid price-type is used, the level will be skipped.\
+Simply add the `price-type` section to your upgrade with the price-type you want. Currently there are three different ones: `money`, `placeholders` and `items`:
 
 #### money
 
@@ -207,15 +212,30 @@ You must add the following fields to your upgrade to get this working:
 | `placeholder`       | String | The placeholder that represents the balance of the player.                                                                                         |
 | `withdraw-commands` | List   | <p>A list of commands to be executed for withdrawing money.<br>You can use %player% for player's name and %amount% for the amount to withdraw.</p> |
 
+#### items
+
+When using this price-type, items will be taken from the players' inventory.
+
+You must add the following fields to your upgrade to get this working:
+
+| Required Field | Type    | Description                                                                                                                                                                                    |
+| -------------  | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `amount`       | Integer | The amount of items to upgrade to next level.                                                                                                                                                  |
+| `types`        | List    | <p>A list of item types, you can specify a single item or multiple items.<br>When multiple items are specified, the player can use any combination of them to meet the required amount.</p> |
+
 {% hint style="info" %}
 You can register custom price types using the API.
 {% endhint %}
 
+### Multiple prices
+
+In the examples above, you saw that the `price-type` and other fields related to prices were placed directly within the upgrade level section. However, if you want to require multiple prices for a single upgrade level, you must create a `prices` section and place the prices inside it. You can find an example below.
+
 ### Example
 
-In the example below, you can find two upgrades (each has only one level) with different price types.&#x20;
+In the example below, you can find upgrades with different price types.&#x20;
 
-The first upgrade, `money-example-upgrade`, has a `money` price-type configured to it. The second one, `placeholders-example-upgrade`, has a `placeholders` price-type. \
+The first upgrade, `money-example-upgrade`, has a `money` price-type configured to it. The second one, `placeholders-example-upgrade`, has a `placeholders` price-type. The third upgrade, `items-example-upgrade`, has a `items` price-type configured to it. \
 For this example, assume the placeholder `%custom_economy_balace%` returns an integer with the balance of the player and the command `/customeco take <player-name> <price>` takes the given balance from the given player.
 
 ```yaml
@@ -233,6 +253,33 @@ upgrades:
       placeholder: '%custom_economy_balance%'
       withdraw-commands:
       - 'customeco take %player% 1000000'
+      commands:
+        - ...
+  items-example-upgrade:
+    '1':
+      amount: 64
+      price-type: 'items'
+      types:
+      - 'DIAMOND'
+      commands:
+        - ...
+  multiple-prices-example-upgrade:
+    '1':
+      prices:
+        'money': # random, but unique key
+          price: 1000000.0
+          price-type: 'money'
+        'customeco':
+          price: 1000000.0
+          price-type: 'placeholders'
+          placeholder: '%custom_economy_balance%'
+          withdraw-commands:
+          - 'customeco take %player% 1000000'
+        'diamonds':
+          amount: 64
+          price-type: 'items'
+          types:
+          - 'DIAMOND'
       commands:
         - ...
 ```
