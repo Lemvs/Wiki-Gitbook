@@ -28,6 +28,10 @@ For both, you can use these variables:\
 
 {% embed url="https://static.bg-software.com/imgs/schematics-creation.mp4" %}
 
+{% hint style="info" %}
+By default, air blocks are skipped when saving a schematic. If you want to include them in schematic, use `/is admin schematic <schematic-name> true` when saving.
+{% endhint %}
+
 ## WorldEdit Schematics
 
 WorldEdit schematics are supported, but you must have FastAsyncWorldEdit installed.\
